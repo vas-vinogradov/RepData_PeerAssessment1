@@ -8,18 +8,94 @@ output:
 
 ## Loading and preprocessing the data
 
+Load the data (i.e. read.csv())
+
+```{r, echo=TRUE}
+data<-read.csv("..\\repdata-data-activity\\activity.csv",colClasses=c("numeric","Date","numeric"))
+head(data)
+```
 
 
 ## What is mean total number of steps taken per day?
+Calculate the total number of steps taken per day
 
+```{r, echo=TRUE}
+stepsbyday<-sapply(split(data$steps,data$date),sum,na.rm=TRUE)
+```
 
+If you do not understand the difference between a histogram and a barplot, research the difference between them. Make a histogram of the total number of steps taken each day
+
+```{r, echo=TRUE}
+hist(stepsbyday,breaks=10)
+```
+
+Calculate and report the mean and median of the total number of steps taken per day
+
+```{r, echo=TRUE}
+mean(stepsbyday)
+median(stepsbyday)
+```
 
 ## What is the average daily activity pattern?
+Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+```{r, echo=TRUE}
+stepsbyinterval<-sapply(split(data$steps,data$interval),mean,na.rm=TRUE)
+plot(unique(data$interval),stepsbyinterval,type="l",xlab="5-minute interval", ylab="average number of steps taken")
+```
+Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
-
+```{r, echo=TRUE}
+data$interval[which.max(stepsbyinterval)]
+```
 
 ## Imputing missing values
+Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
 
+```{r, echo=TRUE}
+length(which(is.na(data$steps)))
+```
+
+Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+===
+*We will use total mean to replace data*
+
+Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r, echo=TRUE}
+data_without_na<-data
+data_without_na$steps[which(is.na(data$steps))]<-mean(data$step,na.rm=TRUE)
+stepsbydaywithdata<-sapply(split(data_without_na$steps,data_without_na$date),sum)
+```
+Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+```{r, echo=TRUE}
+hist(stepsbydaywithdata,breaks=10)
+mean(stepsbydaywithdata)
+median(stepsbydaywithdata)
+```
+
+Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+```{r, echo=TRUE}
+hist(stepsbydaywithdata-stepsbyday,breaks=10)
+mean(stepsbydaywithdata-stepsbyday)
+median(stepsbydaywithdata-stepsbyday)
+```
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r, echo=TRUE}
+wd1<-function(dt){if(weekdays(dt)=="воскресенье" || weekdays(dt)=="суббота") {1} else {0}}
+data$weekday=factor(sapply(data$date,wd1))
+we<-sapply(split(data$steps[data$weekday==1],data$interval[data$weekday==1]),mean,na.rm=TRUE)
+wd<-sapply(split(data$steps[data$weekday==0],data$interval[data$weekday==0]),mean,na.rm=TRUE)
+steps<-c(we,wd)
+weekdays<-factor(c(rep(1,length(we)),rep(0,length(wd))),c(0,1),c("weekday","weekend"))
+
+df<-data.frame(steps,weekdays,unique(data$interval))
+names(df)<-c("s","wd","int")
+
+library(ggplot2)
+qplot(int,s,data=df,geom="line",facets=wd~.)
+```
